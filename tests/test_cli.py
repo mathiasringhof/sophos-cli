@@ -2,10 +2,8 @@ from typer.testing import CliRunner
 
 from sophos_cli.cli import app
 
-runner = CliRunner()
 
-
-def test_help_shows_available_commands() -> None:
+def test_help_shows_available_commands(runner: CliRunner) -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
@@ -14,7 +12,7 @@ def test_help_shows_available_commands() -> None:
     assert "dns" in result.stdout
 
 
-def test_dns_help_shows_expected_subcommands() -> None:
+def test_dns_help_shows_expected_subcommands(runner: CliRunner) -> None:
     result = runner.invoke(app, ["dns", "--help"])
 
     assert result.exit_code == 0
@@ -26,7 +24,7 @@ def test_dns_help_shows_expected_subcommands() -> None:
     assert "update-many" in result.stdout
 
 
-def test_dns_add_many_help_shows_input_examples() -> None:
+def test_dns_add_many_help_shows_input_examples(runner: CliRunner) -> None:
     result = runner.invoke(app, ["dns", "add-many", "--help"])
 
     assert result.exit_code == 0
@@ -35,7 +33,7 @@ def test_dns_add_many_help_shows_input_examples() -> None:
     assert "host_name,ip_address,ip_family,entry_type" in result.stdout
 
 
-def test_dns_update_many_help_shows_input_examples() -> None:
+def test_dns_update_many_help_shows_input_examples(runner: CliRunner) -> None:
     result = runner.invoke(app, ["dns", "update-many", "--help"])
 
     assert result.exit_code == 0

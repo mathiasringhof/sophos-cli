@@ -3,7 +3,11 @@
 ## Project Structure & Module Organization
 This project uses a `src/` layout for a Python CLI package.
 
-- `src/sophos_cli/cli.py`: Typer application and CLI commands.
+- `src/sophos_cli/cli.py`: root Typer app (`version`, `test-connection`, `get-tag`).
+- `src/sophos_cli/commands/`: domain command groups (for example `dns.py`).
+- `src/sophos_cli/services/`: reusable API/domain logic (for example `dns_service.py`).
+- `src/sophos_cli/models/`: Pydantic request/validation models.
+- `src/sophos_cli/io/`: input parsing helpers (for example bulk JSON/CSV).
 - `src/sophos_cli/config.py`: environment-based settings (`SOPHOS_CLI_*`).
 - `src/sophos_cli/sdk.py`: thin wrapper around `sophosfirewall-python` client creation.
 - `src/sophos_cli/__main__.py`: module entrypoint for `python -m sophos_cli`.

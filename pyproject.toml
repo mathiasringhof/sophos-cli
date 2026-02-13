@@ -4,10 +4,23 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sophos-cli"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Command-line tooling for Sophos Firewall automation"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [{ name = "Mathias" }]
+keywords = ["sophos", "firewall", "cli", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic-settings>=2.12.0",
     "rich>=14.3.2",
@@ -29,6 +42,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/sophos_cli"]
 
+[tool.hatch.version]
+path = "src/sophos_cli/__init__.py"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -45,5 +61,4 @@ known-first-party = ["sophos_cli"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
 addopts = "-v --tb=short"
