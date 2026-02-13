@@ -9,13 +9,16 @@ from rich.json import JSON
 from sophosfirewall_python.api_client import SophosFirewallAPIError, SophosFirewallAuthFailure
 
 from sophos_cli import __version__
+from sophos_cli.commands.dns import dns_app
 from sophos_cli.config import Settings
+from sophos_cli.connection import connection_params
 from sophos_cli.sdk import create_client
 
 app = typer.Typer(
     no_args_is_help=True,
     help="CLI scaffold for Sophos Firewall automation via sophosfirewall-python.",
 )
+app.add_typer(dns_app, name="dns")
 console = Console()
 
 
@@ -23,33 +26,6 @@ def _render(payload: Any) -> None:
     """Render API payloads in a readable JSON format."""
 
     console.print(JSON.from_data(payload))
-
-
-def _resolve(value: str | None, default: str | None, option_name: str) -> str:
-    if value:
-        return value
-    if default:
-        return default
-    raise typer.BadParameter(
-        f"Provide --{option_name} or set SOPHOS_CLI_{option_name.upper().replace('-', '_')}."
-    )
-
-
-def _connection_params(
-    settings: Settings,
-    host: str | None,
-    username: str | None,
-    password: str | None,
-    port: int | None,
-    insecure: bool,
-) -> dict[str, Any]:
-    return {
-        "host": _resolve(host, settings.host, "host"),
-        "username": _resolve(username, settings.username, "username"),
-        "password": _resolve(password, settings.password, "password"),
-        "port": port if port is not None else settings.port,
-        "verify_ssl": False if insecure else settings.verify_ssl,
-    }
 
 
 @app.callback()
@@ -89,7 +65,7 @@ def test_connection(
     """Validate API authentication with a login call."""
 
     settings: Settings = ctx.obj["settings"]
-    params = _connection_params(settings, host, username, password, port, insecure)
+    params = connection_params(settings, host, username, password, port, insecure)
 
     try:
         client = create_client(**params)
@@ -121,7 +97,7 @@ def get_tag(
     """Run a generic get request against the Sophos XML API."""
 
     settings: Settings = ctx.obj["settings"]
-    params = _connection_params(settings, host, username, password, port, insecure)
+    params = connection_params(settings, host, username, password, port, insecure)
 
     try:
         client = create_client(**params)

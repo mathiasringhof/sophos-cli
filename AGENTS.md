@@ -47,3 +47,9 @@ Adopt Conventional Commit style for consistency.
 
 ## Security & Configuration Tips
 Do not hardcode credentials. Use environment variables such as `SOPHOS_CLI_HOST`, `SOPHOS_CLI_USERNAME`, and `SOPHOS_CLI_PASSWORD`, or pass `--env-file` for local development.
+
+## Coding Agent API Documentation
+Use `docs/coding-agent/README.md` as the entrypoint for agent-focused API documentation.
+
+- DNS host entry reference: `docs/coding-agent/domains/dns/dns_host_entry.md`
+- Reusable template for new domains/resources: `docs/coding-agent/templates/domain_resource_template.md`
