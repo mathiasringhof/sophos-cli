@@ -20,8 +20,7 @@ class Settings(BaseSettings):
     verify_ssl: bool = True
 
     @classmethod
-    def from_env_file(cls, env_file: Path | None = None) -> Settings:
-        kwargs: dict[str, Path] = {}
+    def from_env_file(cls, env_file: Path | None = None) -> "Settings":
         if env_file is not None:
-            kwargs["_env_file"] = env_file
-        return cls(**kwargs)
+            return cls(_env_file=str(env_file))  # type: ignore[call-arg]
+        return cls()

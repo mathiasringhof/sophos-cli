@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 import xmltodict
 from sophosfirewall_python.api_client import SophosFirewallZeroRecords
@@ -10,16 +12,35 @@ class FakeFirewallClient:
     def __init__(self) -> None:
         self.entries: dict[str, dict[str, object]] = {}
 
-    def get_tag(self, xml_tag: str):
+    def login(self, output_format: str = "dict") -> dict[str, object]:
+        del output_format
+        return {"Response": {"Status": {"@code": "200", "#text": "Authentication Successful"}}}
+
+    def get_tag(
+        self,
+        xml_tag: str,
+        timeout: int = 30,
+        output_format: str = "dict",
+    ) -> dict[str, object]:
+        del timeout, output_format
         assert xml_tag == "DNSHostEntry"
         if not self.entries:
             raise SophosFirewallZeroRecords("Number of records Zero.")
 
         values = list(self.entries.values())
-        payload = values if len(values) > 1 else values[0]
+        payload: object = values if len(values) > 1 else values[0]
         return {"Response": {"DNSHostEntry": payload}}
 
-    def get_tag_with_filter(self, xml_tag: str, key: str, value: str, operator: str = "="):
+    def get_tag_with_filter(
+        self,
+        xml_tag: str,
+        key: str,
+        value: str,
+        operator: str = "=",
+        timeout: int = 30,
+        output_format: str = "dict",
+    ) -> dict[str, object]:
+        del timeout, output_format
         assert xml_tag == "DNSHostEntry"
         assert key == "HostName"
         assert operator == "="
@@ -28,15 +49,36 @@ class FakeFirewallClient:
             raise SophosFirewallZeroRecords("Number of records Zero.")
         return {"Response": {"DNSHostEntry": self.entries[value]}}
 
-    def submit_xml(self, template_data: str, set_operation: str = "add"):
-        payload = xmltodict.parse(template_data)
-        entry = payload["DNSHostEntry"]
-        host_name = entry["HostName"]
+    def submit_xml(
+        self,
+        template_data: str,
+        template_vars: dict[str, object] | None = None,
+        set_operation: str = "add",
+        timeout: int = 30,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del template_vars, timeout, debug
+        payload = _normalize_object_dict(xmltodict.parse(template_data))
+        entry = _normalize_object_dict(payload.get("DNSHostEntry"))
+        host_name = str(entry.get("HostName", ""))
+        if not host_name:
+            raise ValueError("HostName is required")
 
         self.entries[host_name] = entry
 
         action = "Created" if set_operation == "add" else "Updated"
         return {"Response": {"DNSHostEntry": {"Status": {"@code": "200", "#text": action}}}}
+
+
+def _normalize_object_dict(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+
+    normalized: dict[str, object] = {}
+    for key, item in cast(dict[object, object], value).items():
+        if isinstance(key, str):
+            normalized[key] = item
+    return normalized
 
 
 def _sample_entry(host_name: str, ip_address: str) -> DnsHostEntryCreate:
@@ -100,7 +142,9 @@ def test_add_entry_with_force_updates_existing() -> None:
 
     assert action == "updated"
     updated = client.entries["web-1.example.com"]
-    assert updated["AddressList"]["Address"]["IPAddress"] == "192.0.2.50"
+    address_list = cast(dict[str, object], updated["AddressList"])
+    address = cast(dict[str, object], address_list["Address"])
+    assert address["IPAddress"] == "192.0.2.50"
 
 
 def test_update_entry_fails_when_missing() -> None:

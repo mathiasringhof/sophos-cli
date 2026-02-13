@@ -7,11 +7,12 @@ import io
 import json
 import sys
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal, cast
 
 from sophos_cli.models.dns import DnsHostAddress, DnsHostEntryCreate, DnsHostEntryUpdate
 
 BulkInputFormat = Literal["auto", "json", "csv"]
+Record = dict[str, object]
 
 
 def load_dns_add_entries(
@@ -34,7 +35,7 @@ def load_dns_update_entries(
     return [DnsHostEntryUpdate.model_validate(record) for record in records]
 
 
-def _load_records(source: str, input_format: BulkInputFormat) -> list[dict[str, Any]]:
+def _load_records(source: str, input_format: BulkInputFormat) -> list[Record]:
     text = _read_text(source)
     resolved_format = _resolve_format(source, text, input_format)
 
@@ -64,8 +65,10 @@ def _resolve_format(
     text: str,
     input_format: BulkInputFormat,
 ) -> Literal["json", "csv"]:
-    if input_format in {"json", "csv"}:
-        return input_format
+    if input_format == "json":
+        return "json"
+    if input_format == "csv":
+        return "csv"
 
     if source != "-":
         suffix = Path(source).suffix.lower()
@@ -80,35 +83,51 @@ def _resolve_format(
     return "csv"
 
 
-def _parse_json(text: str) -> list[dict[str, Any]]:
-    payload = json.loads(text)
-    if isinstance(payload, list):
-        records = payload
-    elif isinstance(payload, dict) and isinstance(payload.get("entries"), list):
-        records = payload["entries"]
-    else:
-        raise ValueError("JSON input must be a list of records or an object with an 'entries' list")
+def _parse_json(text: str) -> list[Record]:
+    payload: object = json.loads(text)
+    raw_records: list[object]
 
-    if not all(isinstance(record, dict) for record in records):
-        raise ValueError("All JSON records must be objects")
+    if isinstance(payload, list):
+        raw_records = cast(list[object], payload)
+    else:
+        payload_dict = _normalize_record(payload)
+        if payload_dict is None:
+            raise ValueError(
+                "JSON input must be a list of records or an object with an 'entries' list"
+            )
+        entries = payload_dict.get("entries")
+        if not isinstance(entries, list):
+            raise ValueError(
+                "JSON input must be a list of records or an object with an 'entries' list"
+            )
+        raw_records = cast(list[object], entries)
+
+    records: list[Record] = []
+    for raw_record in raw_records:
+        record = _normalize_record(raw_record)
+        if record is None:
+            raise ValueError("All JSON records must be objects with string keys")
+        records.append(record)
     return records
 
 
-def _parse_csv(text: str) -> list[dict[str, Any]]:
-    reader = csv.DictReader(io.StringIO(text))
+def _parse_csv(text: str) -> list[Record]:
+    reader: csv.DictReader[str] = csv.DictReader(io.StringIO(text))
     if not reader.fieldnames:
         raise ValueError("CSV input must include a header row")
 
-    records = []
+    records: list[Record] = []
     for row in reader:
-        if row is None:
-            continue
-        records.append({key: value for key, value in row.items() if key})
+        record: Record = {}
+        for key, value in row.items():
+            if key:
+                record[key] = value
+        records.append(record)
     return records
 
 
-def _canonicalize_record(record: dict[str, Any]) -> dict[str, Any]:
-    canonical: dict[str, Any] = {}
+def _canonicalize_record(record: Record) -> Record:
+    canonical: Record = {}
 
     host_name = _pick(record, ["host_name", "hostname", "HostName", "name", "Name"])
     if host_name is not None:
@@ -135,13 +154,15 @@ def _canonicalize_record(record: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def _parse_addresses(record: dict[str, Any]) -> list[DnsHostAddress]:
-    if isinstance(record.get("addresses"), list):
+def _parse_addresses(record: Record) -> list[DnsHostAddress]:
+    addresses_raw = record.get("addresses")
+    if isinstance(addresses_raw, list):
         addresses: list[DnsHostAddress] = []
-        for item in record["addresses"]:
-            if not isinstance(item, dict):
+        for item in cast(list[object], addresses_raw):
+            normalized_item = _normalize_record(item)
+            if normalized_item is None:
                 continue
-            normalized = _canonicalize_address(item)
+            normalized = _canonicalize_address(normalized_item)
             if normalized:
                 addresses.append(DnsHostAddress.model_validate(normalized))
         return addresses
@@ -152,8 +173,8 @@ def _parse_addresses(record: dict[str, Any]) -> list[DnsHostAddress]:
     return []
 
 
-def _canonicalize_address(record: dict[str, Any]) -> dict[str, Any]:
-    canonical: dict[str, Any] = {}
+def _canonicalize_address(record: Record) -> Record:
+    canonical: Record = {}
 
     ip_address = _pick(record, ["ip_address", "IPAddress", "address", "ip"])
     if ip_address is None or str(ip_address).strip() == "":
@@ -186,14 +207,14 @@ def _canonicalize_address(record: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def _pick(source: dict[str, Any], keys: list[str]) -> Any:
+def _pick(source: Record, keys: list[str]) -> object | None:
     for key in keys:
         if key in source:
             return source[key]
     return None
 
 
-def _parse_optional_int(value: Any) -> int | None:
+def _parse_optional_int(value: object | None) -> int | None:
     if value is None:
         return None
     text = str(value).strip()
@@ -202,7 +223,7 @@ def _parse_optional_int(value: Any) -> int | None:
     return int(text)
 
 
-def _parse_optional_bool(value: Any) -> bool | None:
+def _parse_optional_bool(value: object | None) -> bool | None:
     if value is None:
         return None
 
@@ -217,7 +238,7 @@ def _parse_optional_bool(value: Any) -> bool | None:
     raise ValueError(f"Unsupported boolean value: {value}")
 
 
-def _parse_optional_publish(value: Any) -> str | None:
+def _parse_optional_publish(value: object | None) -> str | None:
     if value is None:
         return None
 
@@ -232,3 +253,15 @@ def _parse_optional_publish(value: Any) -> str | None:
         return "Disable"
 
     raise ValueError(f"Unsupported PublishOnWAN value: {value}")
+
+
+def _normalize_record(value: object) -> Record | None:
+    if not isinstance(value, dict):
+        return None
+
+    normalized: Record = {}
+    for key, item in cast(dict[object, object], value).items():
+        if not isinstance(key, str):
+            return None
+        normalized[key] = item
+    return normalized

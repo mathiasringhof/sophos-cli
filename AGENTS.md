@@ -13,13 +13,17 @@ This project uses a `src/` layout for a Python CLI package.
 Keep command logic in `cli.py` lightweight; move reusable API logic into dedicated modules under `src/sophos_cli/`.
 
 ## Build, Test, and Development Commands
-Use `uv` for environment and dependency management.
+Use `uv` for environment and dependency management, and `just` for common workflows.
 
 - `uv sync`: install project and dev dependencies from `pyproject.toml`/`uv.lock`.
 - `uv run sophos-cli --help`: run the CLI entrypoint.
 - `uv run python -m sophos_cli --help`: run as a Python module.
 - `uv run pytest`: execute tests.
 - `uv run ruff check .`: run lint checks.
+- `just analyze`: run lint, format-check, and strict type checks on `src/sophos_cli`.
+- `just format`: auto-fix lint issues and format `src/sophos_cli`.
+- `just test [pytest args]`: run unit tests (pass-through args supported).
+- `just test-cov`: run tests with coverage report.
 
 If you add tooling, document the command here and in CI.
 

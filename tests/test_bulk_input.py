@@ -1,11 +1,13 @@
 from io import StringIO
+from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 
 from sophos_cli.io.bulk_input import load_dns_add_entries, load_dns_update_entries
 
 
-def test_load_dns_add_entries_from_json_file(tmp_path) -> None:
+def test_load_dns_add_entries_from_json_file(tmp_path: Path) -> None:
     source = tmp_path / "entries.json"
     source.write_text(
         (
@@ -22,7 +24,7 @@ def test_load_dns_add_entries_from_json_file(tmp_path) -> None:
     assert entries[0].addresses[0].ip_address == "192.0.2.10"
 
 
-def test_load_dns_update_entries_from_csv_file(tmp_path) -> None:
+def test_load_dns_update_entries_from_csv_file(tmp_path: Path) -> None:
     source = tmp_path / "entries.csv"
     source.write_text(
         "host_name,ip_address,ip_family,ttl,weight,publish_on_wan\n"
@@ -39,7 +41,7 @@ def test_load_dns_update_entries_from_csv_file(tmp_path) -> None:
     assert entries[0].addresses[0].publish_on_wan == "Enable"
 
 
-def test_load_dns_add_entries_from_stdin(monkeypatch) -> None:
+def test_load_dns_add_entries_from_stdin(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         "sys.stdin",
         StringIO(
@@ -54,7 +56,7 @@ def test_load_dns_add_entries_from_stdin(monkeypatch) -> None:
     assert entries[0].host_name == "api-1.example.com"
 
 
-def test_update_entries_require_mutation_field(tmp_path) -> None:
+def test_update_entries_require_mutation_field(tmp_path: Path) -> None:
     source = tmp_path / "entries.json"
     source.write_text('[{"host_name": "web-1.example.com"}]', encoding="utf-8")
 

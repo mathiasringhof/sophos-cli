@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 import typer
 from rich.console import Console
@@ -15,7 +15,14 @@ from sophosfirewall_python.api_client import (
 )
 
 from sophos_cli.config import Settings
-from sophos_cli.connection import connection_params
+from sophos_cli.connection import (
+    HostOption,
+    InsecureOption,
+    PasswordOption,
+    PortOption,
+    UsernameOption,
+    connection_params,
+)
 from sophos_cli.io.bulk_input import BulkInputFormat, load_dns_add_entries, load_dns_update_entries
 from sophos_cli.models.dns import DnsHostAddress, DnsHostEntryCreate, DnsHostEntryUpdate
 from sophos_cli.sdk import create_client
@@ -42,7 +49,7 @@ def _build_service(
 ) -> DnsService:
     settings: Settings = ctx.obj["settings"]
     params = connection_params(settings, host, username, password, port, insecure)
-    client = create_client(**params)
+    client = create_client(params)
     return DnsService(client)
 
 
@@ -90,14 +97,15 @@ def dns_list(
         OutputFormat,
         typer.Option("--output", help="Response format: table or json."),
     ] = "table",
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """List current DNS host entries."""
 
+    entries: list[DnsHostEntryCreate] = []
     try:
         service = _build_service(ctx, host, username, password, port, insecure)
         entries = service.list_entries()
@@ -115,14 +123,15 @@ def dns_get(
         OutputFormat,
         typer.Option("--output", help="Response format: table or json."),
     ] = "table",
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Get a specific DNS host entry."""
 
+    entry: DnsHostEntryCreate | None = None
     try:
         service = _build_service(ctx, host, username, password, port, insecure)
         entry = service.get_entry(host_name)
@@ -175,14 +184,16 @@ def dns_add(
             help="Update existing entry instead of failing if it already exists.",
         ),
     ] = False,
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Add a DNS host entry."""
 
+    action: str = ""
+    response: dict[str, Any] = {}
     try:
         service = _build_service(ctx, host, username, password, port, insecure)
         entry = DnsHostEntryCreate(
@@ -242,11 +253,11 @@ def dns_update(
         Literal["Enable", "Disable"] | None,
         typer.Option("--reverse-dns-lookup", help="Set reverse DNS lookup mode."),
     ] = None,
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Update a DNS host entry."""
 
@@ -277,6 +288,7 @@ def dns_update(
     if reverse_dns_lookup is not None:
         reverse_lookup_bool = reverse_dns_lookup == "Enable"
 
+    response: dict[str, Any] = {}
     try:
         update = DnsHostEntryUpdate(
             host_name=host_name,
@@ -314,11 +326,11 @@ def dns_add_many(
         bool,
         typer.Option("--continue-on-error", help="Continue processing after an entry error."),
     ] = False,
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Add multiple DNS host entries from file/stdin.
 
@@ -352,6 +364,7 @@ def dns_add_many(
     api-1.example.com,192.0.2.20,IPv4,Manual,3600,0,Disable,true
     """
 
+    result: DnsBulkMutationResult = DnsBulkMutationResult(total=0)
     try:
         entries = load_dns_add_entries(file_path, input_format=input_format)
         service = _build_service(ctx, host, username, password, port, insecure)
@@ -382,11 +395,11 @@ def dns_update_many(
         bool,
         typer.Option("--continue-on-error", help="Continue processing after an entry error."),
     ] = False,
-    host: Annotated[str | None, typer.Option(help="Firewall hostname or IP.")] = None,
-    username: Annotated[str | None, typer.Option(help="Firewall API username.")] = None,
-    password: Annotated[str | None, typer.Option(help="Firewall API password.")] = None,
-    port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
-    insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Update multiple DNS host entries from file/stdin.
 
@@ -410,6 +423,7 @@ def dns_update_many(
     api-1.example.com,,,,,,,true
     """
 
+    result: DnsBulkMutationResult = DnsBulkMutationResult(total=0)
     try:
         entries = load_dns_update_entries(file_path, input_format=input_format)
         service = _build_service(ctx, host, username, password, port, insecure)

@@ -11,7 +11,14 @@ from sophosfirewall_python.api_client import SophosFirewallAPIError, SophosFirew
 from sophos_cli import __version__
 from sophos_cli.commands.dns import dns_app
 from sophos_cli.config import Settings
-from sophos_cli.connection import connection_params
+from sophos_cli.connection import (
+    HostOption,
+    InsecureOption,
+    PasswordOption,
+    PortOption,
+    UsernameOption,
+    connection_params,
+)
 from sophos_cli.sdk import create_client
 
 app = typer.Typer(
@@ -56,11 +63,11 @@ def show_version() -> None:
 @app.command("test-connection")
 def test_connection(
     ctx: typer.Context,
-    host: str | None = typer.Option(None, help="Firewall hostname or IP."),
-    username: str | None = typer.Option(None, help="Firewall API username."),
-    password: str | None = typer.Option(None, help="Firewall API password."),
-    port: int | None = typer.Option(None, min=1, max=65535, help="Firewall API port."),
-    insecure: bool = typer.Option(False, help="Disable TLS certificate verification."),
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
 ) -> None:
     """Validate API authentication with a login call."""
 
@@ -68,7 +75,7 @@ def test_connection(
     params = connection_params(settings, host, username, password, port, insecure)
 
     try:
-        client = create_client(**params)
+        client = create_client(params)
         result = client.login(output_format="dict")
     except SophosFirewallAuthFailure as exc:
         console.print(f"Authentication failed: {exc}", style="bold red")
@@ -84,11 +91,11 @@ def test_connection(
 def get_tag(
     ctx: typer.Context,
     xml_tag: str = typer.Argument(..., help="XML tag to query from the firewall API."),
-    host: str | None = typer.Option(None, help="Firewall hostname or IP."),
-    username: str | None = typer.Option(None, help="Firewall API username."),
-    password: str | None = typer.Option(None, help="Firewall API password."),
-    port: int | None = typer.Option(None, min=1, max=65535, help="Firewall API port."),
-    insecure: bool = typer.Option(False, help="Disable TLS certificate verification."),
+    host: HostOption = None,
+    username: UsernameOption = None,
+    password: PasswordOption = None,
+    port: PortOption = None,
+    insecure: InsecureOption = False,
     key: str | None = typer.Option(None, help="Optional filter key."),
     value: str | None = typer.Option(None, help="Optional filter value."),
     operator: str = typer.Option("like", help="Filter operator: =, !=, like."),
@@ -100,7 +107,7 @@ def get_tag(
     params = connection_params(settings, host, username, password, port, insecure)
 
     try:
-        client = create_client(**params)
+        client = create_client(params)
         if key and value:
             result = client.get_tag_with_filter(
                 xml_tag=xml_tag,

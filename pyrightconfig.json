@@ -1,0 +1,12 @@
+{
+  "stubPath": "typings",
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": [
+    "src/sophos_cli",
+    "tests"
+  ],
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.12"
+}
