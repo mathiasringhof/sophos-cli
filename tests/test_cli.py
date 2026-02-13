@@ -24,3 +24,21 @@ def test_dns_help_shows_expected_subcommands() -> None:
     assert "update" in result.stdout
     assert "add-many" in result.stdout
     assert "update-many" in result.stdout
+
+
+def test_dns_add_many_help_shows_input_examples() -> None:
+    result = runner.invoke(app, ["dns", "add-many", "--help"])
+
+    assert result.exit_code == 0
+    assert "Input examples:" in result.stdout
+    assert '"host_name": "web-1.example.com"' in result.stdout
+    assert "host_name,ip_address,ip_family,entry_type" in result.stdout
+
+
+def test_dns_update_many_help_shows_input_examples() -> None:
+    result = runner.invoke(app, ["dns", "update-many", "--help"])
+
+    assert result.exit_code == 0
+    assert "Input examples:" in result.stdout
+    assert '"add_reverse_dns_lookup": true' in result.stdout
+    assert "host_name,ip_address,ip_family,entry_type" in result.stdout

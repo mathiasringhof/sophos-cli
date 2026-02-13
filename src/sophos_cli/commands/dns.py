@@ -320,7 +320,37 @@ def dns_add_many(
     port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
     insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
 ) -> None:
-    """Add multiple DNS host entries from file/stdin."""
+    """Add multiple DNS host entries from file/stdin.
+
+    Input examples:
+
+    JSON list:
+    [
+      {
+        "host_name": "web-1.example.com",
+        "ip_address": "192.0.2.10"
+      },
+      {
+        "host_name": "api-1.example.com",
+        "addresses": [
+          {
+            "entry_type": "Manual",
+            "ip_family": "IPv4",
+            "ip_address": "192.0.2.20",
+            "ttl": 3600,
+            "weight": 0,
+            "publish_on_wan": "Disable"
+          }
+        ],
+        "add_reverse_dns_lookup": false
+      }
+    ]
+
+    CSV (one address per row):
+    host_name,ip_address,ip_family,entry_type,ttl,weight,publish_on_wan,add_reverse_dns_lookup
+    web-1.example.com,192.0.2.10,IPv4,Manual,3600,0,Disable,false
+    api-1.example.com,192.0.2.20,IPv4,Manual,3600,0,Disable,true
+    """
 
     try:
         entries = load_dns_add_entries(file_path, input_format=input_format)
@@ -358,7 +388,27 @@ def dns_update_many(
     port: Annotated[int | None, typer.Option(min=1, max=65535, help="Firewall API port.")] = None,
     insecure: Annotated[bool, typer.Option(help="Disable TLS certificate verification.")] = False,
 ) -> None:
-    """Update multiple DNS host entries from file/stdin."""
+    """Update multiple DNS host entries from file/stdin.
+
+    Input examples:
+
+    JSON list:
+    [
+      {
+        "host_name": "web-1.example.com",
+        "ip_address": "192.0.2.30"
+      },
+      {
+        "host_name": "api-1.example.com",
+        "add_reverse_dns_lookup": true
+      }
+    ]
+
+    CSV (one address per row; leave address fields empty for reverse-lookup-only updates):
+    host_name,ip_address,ip_family,entry_type,ttl,weight,publish_on_wan,add_reverse_dns_lookup
+    web-1.example.com,192.0.2.30,IPv4,Manual,3600,0,Disable,
+    api-1.example.com,,,,,,,true
+    """
 
     try:
         entries = load_dns_update_entries(file_path, input_format=input_format)
