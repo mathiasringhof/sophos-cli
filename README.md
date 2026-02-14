@@ -2,6 +2,7 @@
 
 Command-line tooling for Sophos Firewall automation, built on top of
 [`sophosfirewall-python`](https://pypi.org/project/sophosfirewall-python/).
+Just implemented DNS for now to scratch an itch.
 
 ### Highlights
 
