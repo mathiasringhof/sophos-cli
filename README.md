@@ -119,3 +119,4 @@ src/sophos_cli/
 
 - Agent docs entrypoint: `docs/coding-agent/README.md`
 - DNS resource reference: `docs/coding-agent/domains/dns/dns_host_entry.md`
+- Sophos API Docs: `https://docs.sophos.com/nsg/sophos-firewall/22.0/api/index.html`
