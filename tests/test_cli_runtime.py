@@ -186,3 +186,101 @@ def test_dns_add_many_partial_failure_returns_exit_code_2(
 
     assert result.exit_code == 2
     assert "add-many summary: total=2 created=1 updated=0 failed=1" in result.stdout
+
+
+def test_api_generated_command_dispatches_scalar_options(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "api",
+            "get-ip-host",
+            "--name",
+            "web-1",
+            "--ip-address",
+            "192.0.2.10",
+            "--operator",
+            "=",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "get_ip_host",
+        {
+            "args": [],
+            "kwargs": {"name": "web-1", "ip_address": "192.0.2.10", "operator": "="},
+        },
+    )
+
+
+def test_api_generated_command_parses_json_options(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "api",
+            "create-service",
+            "--name",
+            "HTTPS",
+            "--service-type",
+            "TCPorUDP",
+            "--service-list-json",
+            '[{"protocol":"TCP","dst_port":"443"}]',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_service",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "HTTPS",
+                "service_type": "TCPorUDP",
+                "service_list": [{"protocol": "TCP", "dst_port": "443"}],
+            },
+        },
+    )
+
+
+def test_api_generated_command_accepts_extra_json_kwargs(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "api",
+            "create-admin-profile",
+            "--name",
+            "readonly",
+            "--default-permission",
+            "Read-Only",
+            "--extra-json",
+            '{"dashboard":"Read-Only"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_admin_profile",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "readonly",
+                "default_permission": "Read-Only",
+                "dashboard": "Read-Only",
+            },
+        },
+    )

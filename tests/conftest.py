@@ -105,6 +105,16 @@ class InMemoryFirewallClient:
         action = "Created" if set_operation == "add" else "Updated"
         return {"Response": {"DNSHostEntry": {"Status": {"@code": "200", "#text": action}}}}
 
+    def __getattr__(self, name: str):
+        if name.startswith("_"):
+            raise AttributeError(name)
+
+        def _method(*args: object, **kwargs: object) -> dict[str, object]:
+            self.last_call = (name, {"args": list(args), "kwargs": kwargs})
+            return {"Response": {"Method": name, "Arguments": {"args": list(args), "kwargs": kwargs}}}
+
+        return _method
+
 
 def _normalize_object_dict(value: object) -> dict[str, object]:
     if not isinstance(value, dict):
@@ -142,5 +152,6 @@ def firewall_client(monkeypatch: pytest.MonkeyPatch) -> InMemoryFirewallClient:
         return client
 
     monkeypatch.setattr("sophos_cli.cli.create_client", _create_client)
+    monkeypatch.setattr("sophos_cli.commands.api.create_client", _create_client)
     monkeypatch.setattr("sophos_cli.commands.dns.create_client", _create_client)
     return client

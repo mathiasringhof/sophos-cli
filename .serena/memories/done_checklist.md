@@ -1,0 +1,1 @@
+When finishing a change, run tests and lint at minimum. Preferred validation in this repo is `uv run pytest`, `uv run ruff check .`, and when relevant `just analyze` or pyright. Summarize changed behavior concisely and note any E2E limitations or external dependencies.

@@ -9,6 +9,7 @@ from rich.json import JSON
 from sophosfirewall_python.api_client import SophosFirewallAPIError, SophosFirewallAuthFailure
 
 from sophos_cli import __version__
+from sophos_cli.commands.api import api_app
 from sophos_cli.commands.dns import dns_app
 from sophos_cli.config import Settings
 from sophos_cli.connection import (
@@ -25,6 +26,7 @@ app = typer.Typer(
     no_args_is_help=True,
     help="CLI scaffold for Sophos Firewall automation via sophosfirewall-python.",
 )
+app.add_typer(api_app, name="api")
 app.add_typer(dns_app, name="dns")
 console = Console()
 
