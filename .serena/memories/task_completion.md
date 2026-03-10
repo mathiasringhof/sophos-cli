@@ -1,0 +1,1 @@
+After changes, run the relevant test suite and lint/type checks. Preferred repo commands are `just analyze` for lint/format-check/type-check and `just test` or `uv run pytest` for tests. For CLI changes, verify help output and command behavior with pytest coverage, and only use live Sophos firewall testing behind an explicit opt-in path.

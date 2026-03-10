@@ -92,6 +92,14 @@ class DnsService:
 
         return self._submit_entry(merged, set_operation="update")
 
+    def delete_entry(self, host_name: str) -> FirewallObject:
+        existing = self.get_entry(host_name)
+        if not existing:
+            raise ValueError(f"DNS entry '{host_name}' does not exist")
+
+        response = self._client.remove(xml_tag="DNSHostEntry", name=host_name, key="HostName")
+        return self._normalize_object_dict(response)
+
     def add_many(
         self,
         entries: list[DnsHostEntryCreate],

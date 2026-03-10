@@ -69,6 +69,138 @@ class FakeFirewallClient:
         action = "Created" if set_operation == "add" else "Updated"
         return {"Response": {"DNSHostEntry": {"Status": {"@code": "200", "#text": action}}}}
 
+    def remove(
+        self,
+        xml_tag: str,
+        name: str,
+        key: str = "Name",
+        timeout: int = 30,
+        output_format: str = "dict",
+    ) -> dict[str, object]:
+        del xml_tag, key, timeout, output_format
+        self.entries.pop(name, None)
+        return {"Response": {"Status": {"@code": "200", "#text": "Deleted"}}}
+
+    def update(
+        self,
+        xml_tag: str,
+        update_params: dict[str, object],
+        name: str | None = None,
+        lookup_key: str = "Name",
+        output_format: str = "dict",
+        timeout: int = 30,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del xml_tag, update_params, name, lookup_key, output_format, timeout, debug
+        return {"Response": {}}
+
+    def get_ip_host(
+        self,
+        name: str | None = None,
+        ip_address: str | None = None,
+        operator: str = "=",
+    ) -> dict[str, object]:
+        del name, ip_address, operator
+        return {"Response": {}}
+
+    def create_ip_host(
+        self,
+        name: str,
+        ip_address: str | None = None,
+        mask: str | None = None,
+        start_ip: str | None = None,
+        end_ip: str | None = None,
+        host_type: str = "IP",
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, ip_address, mask, start_ip, end_ip, host_type, debug
+        return {"Response": {}}
+
+    def get_ip_hostgroup(self, name: str | None = None, operator: str = "=") -> dict[str, object]:
+        del name, operator
+        return {"Response": {}}
+
+    def create_ip_hostgroup(
+        self,
+        name: str,
+        host_list: list[str],
+        description: str | None = None,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, host_list, description, debug
+        return {"Response": {}}
+
+    def update_ip_hostgroup(
+        self,
+        name: str,
+        host_list: list[str],
+        description: str | None = None,
+        action: str = "add",
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, host_list, description, action, debug
+        return {"Response": {}}
+
+    def create_ip_network(
+        self,
+        name: str,
+        ip_network: str,
+        mask: str,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, ip_network, mask, debug
+        return {"Response": {}}
+
+    def create_ip_range(
+        self,
+        name: str,
+        start_ip: str,
+        end_ip: str,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, start_ip, end_ip, debug
+        return {"Response": {}}
+
+    def get_fqdn_host(self, name: str | None = None, operator: str = "=") -> dict[str, object]:
+        del name, operator
+        return {"Response": {}}
+
+    def create_fqdn_host(
+        self,
+        name: str,
+        fqdn: str,
+        fqdn_group_list: list[str] | None = None,
+        description: str | None = None,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, fqdn, fqdn_group_list, description, debug
+        return {"Response": {}}
+
+    def get_fqdn_hostgroup(self, name: str | None = None, operator: str = "=") -> dict[str, object]:
+        del name, operator
+        return {"Response": {}}
+
+    def create_fqdn_hostgroup(
+        self,
+        name: str,
+        fqdn_host_list: list[str] | None = None,
+        description: str | None = None,
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, fqdn_host_list, description, debug
+        return {"Response": {}}
+
+    def update_fqdn_hostgroup(
+        self,
+        name: str,
+        fqdn_host_list: list[str],
+        description: str | None = None,
+        action: str = "add",
+        debug: bool = False,
+    ) -> dict[str, object]:
+        del name, fqdn_host_list, description, action, debug
+        return {"Response": {}}
+
 
 def _normalize_object_dict(value: object) -> dict[str, object]:
     if not isinstance(value, dict):

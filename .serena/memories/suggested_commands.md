@@ -1,0 +1,1 @@
+Setup/run: `uv sync`, `uv run sophos-cli --help`, `uv run python -m sophos_cli --help`. Quality checks: `uv run pytest`, `uv run ruff check .`, `just analyze`, `just format`, `just test`, `just test-cov`. Current CLI examples: `uv run sophos-cli test-connection`, `uv run sophos-cli dns list`, `uv run sophos-cli dns add web-1.example.com --ip-address 192.0.2.10`.

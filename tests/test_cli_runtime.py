@@ -50,7 +50,7 @@ def test_test_connection_auth_failure(
     def _create_client(_params: ConnectionParams) -> AuthFailureClient:
         return AuthFailureClient()
 
-    monkeypatch.setattr("sophos_cli.cli.create_client", _create_client)
+    monkeypatch.setattr("sophos_cli.command_support.create_client", _create_client)
 
     result = runner.invoke(app, ["test-connection", *connection_args])
 
@@ -68,6 +68,7 @@ def test_get_tag_with_filter_uses_filtered_api_call(
     result = runner.invoke(
         app,
         [
+            "raw",
             "get-tag",
             "DNSHostEntry",
             "--key",
@@ -98,9 +99,9 @@ def test_get_tag_handles_api_error(
     def _create_client(_params: ConnectionParams) -> ApiErrorClient:
         return ApiErrorClient()
 
-    monkeypatch.setattr("sophos_cli.cli.create_client", _create_client)
+    monkeypatch.setattr("sophos_cli.command_support.create_client", _create_client)
 
-    result = runner.invoke(app, ["get-tag", "Network", *connection_args])
+    result = runner.invoke(app, ["raw", "get-tag", "Network", *connection_args])
 
     assert result.exit_code == 1
     assert "API request failed: request failed" in result.stdout
@@ -145,7 +146,7 @@ def test_dns_add_many_missing_file_returns_exit_code_1(
         app,
         [
             "dns",
-            "add-many",
+            "create-many",
             "--file",
             "does-not-exist.json",
             *connection_args,
@@ -176,7 +177,7 @@ def test_dns_add_many_partial_failure_returns_exit_code_2(
         app,
         [
             "dns",
-            "add-many",
+            "create-many",
             "--file",
             str(source),
             "--continue-on-error",
@@ -185,4 +186,77 @@ def test_dns_add_many_partial_failure_returns_exit_code_2(
     )
 
     assert result.exit_code == 2
-    assert "add-many summary: total=2 created=1 updated=0 failed=1" in result.stdout
+    assert "create-many summary: total=2 created=1 updated=0 failed=1" in result.stdout
+
+
+def test_dns_list_defaults_to_json_when_stdout_is_not_a_tty(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.seed_entry("web-1.example.com", "192.0.2.10")
+
+    result = runner.invoke(app, ["dns", "list", *connection_args])
+
+    assert result.exit_code == 0
+    assert '"host_name": "web-1.example.com"' in result.stdout
+    assert "DNS Host Entries" not in result.stdout
+
+
+def test_dns_create_alias_still_works_for_add(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    del firewall_client
+
+    result = runner.invoke(
+        app,
+        ["dns", "create", "api-1.example.com", "--ip-address", "192.0.2.20", *connection_args],
+    )
+
+    assert result.exit_code == 0
+    assert "DNS entry 'api-1.example.com' created" in result.stdout
+
+
+def test_dns_delete_requires_yes(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.seed_entry("web-1.example.com", "192.0.2.10")
+
+    result = runner.invoke(app, ["dns", "delete", "web-1.example.com", *connection_args])
+
+    assert result.exit_code == 2
+    assert "--yes" in result.stdout
+
+
+def test_network_ip_host_create_and_get(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    create_result = runner.invoke(
+        app,
+        [
+            "network",
+            "ip-host",
+            "create",
+            "branch-office",
+            "--ip-address",
+            "192.0.2.44",
+            *connection_args,
+        ],
+    )
+
+    assert create_result.exit_code == 0
+    assert '"Name": "branch-office"' in create_result.stdout
+
+    get_result = runner.invoke(
+        app,
+        ["network", "ip-host", "get", "branch-office", *connection_args],
+    )
+
+    assert get_result.exit_code == 0
+    assert '"IPAddress": "192.0.2.44"' in get_result.stdout

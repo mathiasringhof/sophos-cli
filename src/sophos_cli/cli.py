@@ -1,15 +1,28 @@
 """Typer-based command line interface for Sophos Firewall automation."""
 
 from pathlib import Path
-from typing import Any
 
 import typer
-from rich.console import Console
-from rich.json import JSON
-from sophosfirewall_python.api_client import SophosFirewallAPIError, SophosFirewallAuthFailure
+from sophosfirewall_python.api_client import SophosFirewallAuthFailure
 
 from sophos_cli import __version__
+from sophos_cli.command_support import (
+    API_EXCEPTIONS,
+    build_client,
+    console,
+    handle_api_exception,
+    render_payload,
+)
+from sophos_cli.commands.admin import admin_app
 from sophos_cli.commands.dns import dns_app
+from sophos_cli.commands.firewall import firewall_app
+from sophos_cli.commands.network import network_app
+from sophos_cli.commands.raw import raw_app
+from sophos_cli.commands.service import service_app
+from sophos_cli.commands.system import system_app
+from sophos_cli.commands.user import user_app
+from sophos_cli.commands.webfilter import webfilter_app
+from sophos_cli.commands.zone import zone_app
 from sophos_cli.config import Settings
 from sophos_cli.connection import (
     HostOption,
@@ -17,22 +30,22 @@ from sophos_cli.connection import (
     PasswordOption,
     PortOption,
     UsernameOption,
-    connection_params,
 )
-from sophos_cli.sdk import create_client
 
 app = typer.Typer(
     no_args_is_help=True,
-    help="CLI scaffold for Sophos Firewall automation via sophosfirewall-python.",
+    help="LLM-first command line tooling for Sophos Firewall automation.",
 )
 app.add_typer(dns_app, name="dns")
-console = Console()
-
-
-def _render(payload: Any) -> None:
-    """Render API payloads in a readable JSON format."""
-
-    console.print(JSON.from_data(payload))
+app.add_typer(network_app, name="network")
+app.add_typer(service_app, name="service")
+app.add_typer(firewall_app, name="firewall")
+app.add_typer(zone_app, name="zone")
+app.add_typer(admin_app, name="admin")
+app.add_typer(user_app, name="user")
+app.add_typer(webfilter_app, name="webfilter")
+app.add_typer(system_app, name="system")
+app.add_typer(raw_app, name="raw", hidden=True)
 
 
 @app.callback()
@@ -71,56 +84,14 @@ def test_connection(
 ) -> None:
     """Validate API authentication with a login call."""
 
-    settings: Settings = ctx.obj["settings"]
-    params = connection_params(settings, host, username, password, port, insecure)
-
+    result: object = {}
     try:
-        client = create_client(params)
+        client = build_client(ctx, host, username, password, port, insecure)
         result = client.login(output_format="dict")
     except SophosFirewallAuthFailure as exc:
         console.print(f"Authentication failed: {exc}", style="bold red")
         raise typer.Exit(code=1) from exc
-    except SophosFirewallAPIError as exc:
-        console.print(f"API request failed: {exc}", style="bold red")
-        raise typer.Exit(code=1) from exc
+    except API_EXCEPTIONS as exc:
+        handle_api_exception(exc)
 
-    _render(result)
-
-
-@app.command("get-tag")
-def get_tag(
-    ctx: typer.Context,
-    xml_tag: str = typer.Argument(..., help="XML tag to query from the firewall API."),
-    host: HostOption = None,
-    username: UsernameOption = None,
-    password: PasswordOption = None,
-    port: PortOption = None,
-    insecure: InsecureOption = False,
-    key: str | None = typer.Option(None, help="Optional filter key."),
-    value: str | None = typer.Option(None, help="Optional filter value."),
-    operator: str = typer.Option("like", help="Filter operator: =, !=, like."),
-    timeout: int = typer.Option(30, min=1, help="Request timeout in seconds."),
-) -> None:
-    """Run a generic get request against the Sophos XML API."""
-
-    settings: Settings = ctx.obj["settings"]
-    params = connection_params(settings, host, username, password, port, insecure)
-
-    try:
-        client = create_client(params)
-        if key and value:
-            result = client.get_tag_with_filter(
-                xml_tag=xml_tag,
-                key=key,
-                value=value,
-                operator=operator,
-                timeout=timeout,
-                output_format="dict",
-            )
-        else:
-            result = client.get_tag(xml_tag=xml_tag, timeout=timeout, output_format="dict")
-    except SophosFirewallAPIError as exc:
-        console.print(f"API request failed: {exc}", style="bold red")
-        raise typer.Exit(code=1) from exc
-
-    _render(result)
+    render_payload(result)

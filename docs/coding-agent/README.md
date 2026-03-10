@@ -58,3 +58,15 @@ When adding support for a new API resource:
 3. Implement service logic in `src/sophos_cli/services/`.
 4. Wire CLI commands in `src/sophos_cli/commands/`.
 5. Add/update tests under `tests/`.
+
+## Current Coverage
+
+- Support matrix: `docs/coding-agent/support_matrix.md`
+- DNS: `docs/coding-agent/domains/dns/dns_host_entry.md`
+- Network:
+  - `docs/coding-agent/domains/network/ip_host.md`
+  - `docs/coding-agent/domains/network/ip_host_group.md`
+  - `docs/coding-agent/domains/network/ip_network.md`
+  - `docs/coding-agent/domains/network/ip_range.md`
+  - `docs/coding-agent/domains/network/fqdn_host.md`
+  - `docs/coding-agent/domains/network/fqdn_host_group.md`
