@@ -62,3 +62,6 @@ known-first-party = ["sophos_cli"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "e2e: runs against a live Sophos Firewall appliance",
+]

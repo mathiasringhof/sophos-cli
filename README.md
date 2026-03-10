@@ -2,14 +2,17 @@
 
 Command-line tooling for Sophos Firewall automation, built on top of
 [`sophosfirewall-python`](https://pypi.org/project/sophosfirewall-python/).
-Just implemented DNS for now to scratch an itch.
+The CLI now exposes explicit, discoverable command groups that are easier for
+humans and LLMs to use than raw SDK calls alone.
 
 ### Highlights
 
-- Typer-based CLI (`sophos-cli`)
+- Typer-based CLI (`sophos-cli`) with an explicit command tree
 - Strict static typing (Pyright `strict`)
 - Domain separation: models, services, command handlers
+- JSON-first behavior for non-interactive use
 - JSON/CSV bulk DNS workflows
+- Wave 1 network object support (`network ip-host`, `ip-network`, `ip-range`, and more)
 
 ## Requirements
 
@@ -66,10 +69,10 @@ Get one DNS host entry:
 uv run sophos-cli dns get web-1.example.com
 ```
 
-Add a DNS host entry:
+Create a DNS host entry:
 
 ```bash
-uv run sophos-cli dns add web-1.example.com --ip-address 192.0.2.10
+uv run sophos-cli dns create web-1.example.com --ip-address 192.0.2.10
 ```
 
 Update a DNS host entry:
@@ -81,8 +84,22 @@ uv run sophos-cli dns update web-1.example.com --ip-address 192.0.2.20
 Bulk add/update from JSON or CSV:
 
 ```bash
-uv run sophos-cli dns add-many --file entries.json
+uv run sophos-cli dns create-many --file entries.json
 uv run sophos-cli dns update-many --file updates.csv
+```
+
+Create and inspect network objects:
+
+```bash
+uv run sophos-cli network ip-host create branch-office --ip-address 192.0.2.44
+uv run sophos-cli network ip-host get branch-office
+uv run sophos-cli network ip-network create corp-net --ip-network 192.0.2.0 --mask 255.255.255.0
+```
+
+Use the raw fallback only when a resource is not yet explicitly modeled:
+
+```bash
+uv run sophos-cli raw get-tag DNSHostEntry
 ```
 
 ## Development Workflow
@@ -109,10 +126,14 @@ uv run pytest
 
 ```text
 src/sophos_cli/
-  cli.py                # root command app + generic commands
+  cli.py                # root command app
   commands/dns.py       # DNS command group
+  commands/network.py   # network object command groups
+  commands/raw.py       # hidden raw XML fallback
   models/dns.py         # pydantic request/validation models
+  models/network.py     # pydantic models for Wave 1 network objects
   services/dns_service.py
+  services/network_service.py
   io/bulk_input.py      # JSON/CSV parsing for bulk flows
 ```
 
@@ -120,4 +141,5 @@ src/sophos_cli/
 
 - Agent docs entrypoint: `docs/coding-agent/README.md`
 - DNS resource reference: `docs/coding-agent/domains/dns/dns_host_entry.md`
+- Command/resource support matrix: `docs/coding-agent/support_matrix.md`
 - Sophos API Docs: `https://docs.sophos.com/nsg/sophos-firewall/22.0/api/index.html`

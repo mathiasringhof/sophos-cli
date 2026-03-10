@@ -8,30 +8,41 @@ def test_help_shows_available_commands(runner: CliRunner) -> None:
 
     assert result.exit_code == 0
     assert "test-connection" in result.stdout
-    assert "get-tag" in result.stdout
     assert "api" in result.stdout
     assert "dns" in result.stdout
+    assert "network" in result.stdout
+    assert "service" in result.stdout
+    assert "firewall" in result.stdout
+    assert "zone" in result.stdout
+    assert "admin" in result.stdout
+    assert "user" in result.stdout
+    assert "webfilter" in result.stdout
+    assert "system" in result.stdout
+    assert "get-tag" not in result.stdout
+    assert "raw" not in result.stdout
 
 
 def test_dns_help_shows_expected_subcommands(runner: CliRunner) -> None:
     result = runner.invoke(app, ["dns", "--help"])
 
     assert result.exit_code == 0
-    assert "add" in result.stdout
+    assert "create" in result.stdout
     assert "list" in result.stdout
     assert "get" in result.stdout
     assert "update" in result.stdout
-    assert "add-many" in result.stdout
+    assert "delete" in result.stdout
+    assert "create-many" in result.stdout
     assert "update-many" in result.stdout
 
 
-def test_dns_add_many_help_shows_input_examples(runner: CliRunner) -> None:
-    result = runner.invoke(app, ["dns", "add-many", "--help"])
+def test_dns_create_many_help_shows_input_examples(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["dns", "create-many", "--help"])
 
     assert result.exit_code == 0
     assert "Input examples:" in result.stdout
     assert '"host_name": "web-1.example.com"' in result.stdout
     assert "host_name,ip_address,ip_family,entry_type" in result.stdout
+    assert "Use `dns add-many` only for backward compatibility." in result.stdout
 
 
 def test_dns_update_many_help_shows_input_examples(runner: CliRunner) -> None:
@@ -60,3 +71,15 @@ def test_api_method_help_shows_expected_options(runner: CliRunner) -> None:
     assert "--name" in result.stdout
     assert "--ip-address" in result.stdout
     assert "--operator" in result.stdout
+
+
+def test_network_help_shows_wave_one_subcommands(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["network", "--help"])
+
+    assert result.exit_code == 0
+    assert "ip-host" in result.stdout
+    assert "ip-host-group" in result.stdout
+    assert "ip-network" in result.stdout
+    assert "ip-range" in result.stdout
+    assert "fqdn-host" in result.stdout
+    assert "fqdn-host-group" in result.stdout
