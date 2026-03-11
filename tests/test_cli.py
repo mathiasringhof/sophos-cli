@@ -83,3 +83,16 @@ def test_network_help_shows_wave_one_subcommands(runner: CliRunner) -> None:
     assert "ip-range" in result.stdout
     assert "fqdn-host" in result.stdout
     assert "fqdn-host-group" in result.stdout
+
+
+def test_network_group_help_uses_member_option(runner: CliRunner) -> None:
+    ip_group_result = runner.invoke(app, ["network", "ip-host-group", "create", "--help"])
+    fqdn_group_result = runner.invoke(app, ["network", "fqdn-host-group", "create", "--help"])
+
+    assert ip_group_result.exit_code == 0
+    assert "--member" in ip_group_result.stdout
+    assert "--host" in ip_group_result.stdout
+
+    assert fqdn_group_result.exit_code == 0
+    assert "--member" in fqdn_group_result.stdout
+    assert "--host" in fqdn_group_result.stdout

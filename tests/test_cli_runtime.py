@@ -357,3 +357,131 @@ def test_api_generated_command_accepts_extra_json_kwargs(
             },
         },
     )
+
+
+def test_network_ip_host_group_create_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.create_ip_host(name="web-1", ip_address="192.0.2.10")
+
+    result = runner.invoke(
+        app,
+        [
+            "network",
+            "ip-host-group",
+            "create",
+            "branch-group",
+            "--member",
+            "web-1",
+            "--description",
+            "Branch hosts",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_ip_hostgroup",
+        {
+            "Name": "branch-group",
+            "Description": "Branch hosts",
+            "HostList": {"Host": ["web-1"]},
+        },
+    )
+
+
+def test_network_ip_host_group_update_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.create_ip_host(name="web-1", ip_address="192.0.2.10")
+    firewall_client.create_ip_host(name="web-2", ip_address="192.0.2.11")
+    firewall_client.create_ip_hostgroup(name="branch-group", host_list=["web-1"])
+
+    result = runner.invoke(
+        app,
+        [
+            "network",
+            "ip-host-group",
+            "update",
+            "branch-group",
+            "--member",
+            "web-2",
+            "--action",
+            "add",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_ip_hostgroup",
+        {"name": "branch-group", "action": "add", "host_list": ["web-2"]},
+    )
+
+
+def test_network_fqdn_host_group_create_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.create_fqdn_host(name="app-1", fqdn="app-1.example.com")
+
+    result = runner.invoke(
+        app,
+        [
+            "network",
+            "fqdn-host-group",
+            "create",
+            "apps",
+            "--member",
+            "app-1",
+            "--description",
+            "Application hosts",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_fqdn_hostgroup",
+        {
+            "Name": "apps",
+            "Description": "Application hosts",
+            "FQDNHostList": {"FQDNHost": ["app-1"]},
+        },
+    )
+
+
+def test_network_fqdn_host_group_update_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    firewall_client.create_fqdn_host(name="app-1", fqdn="app-1.example.com")
+    firewall_client.create_fqdn_host(name="app-2", fqdn="app-2.example.com")
+    firewall_client.create_fqdn_hostgroup(name="apps", fqdn_host_list=["app-1"])
+
+    result = runner.invoke(
+        app,
+        [
+            "network",
+            "fqdn-host-group",
+            "update",
+            "apps",
+            "--member",
+            "app-2",
+            "--action",
+            "add",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_fqdn_hostgroup",
+        {"name": "apps", "action": "add", "fqdn_host_list": ["app-2"]},
+    )

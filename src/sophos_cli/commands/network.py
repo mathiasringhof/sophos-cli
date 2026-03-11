@@ -223,10 +223,7 @@ def ip_host_group_get(
 def ip_host_group_create(
     ctx: typer.Context,
     name: Annotated[str, typer.Argument(help="IP host group name.")],
-    members: Annotated[
-        list[str] | None,
-        typer.Option("--host", help="Existing IP host members to include."),
-    ] = None,
+    members: Annotated[list[str], typer.Option("--member", help="Existing IP host members to include.")],
     description: Annotated[str | None, typer.Option("--description", help="Optional description.")] = None,
     host: HostOption = None,
     username: UsernameOption = None,
@@ -239,7 +236,7 @@ def ip_host_group_create(
     response: dict[str, object] = {}
     try:
         response = _service(ctx, host, username, password, port, insecure).create_ip_host_group(
-            IpHostGroupCreate(name=name, host_list=members or [], description=description)
+            IpHostGroupCreate(name=name, host_list=members, description=description)
         )
     except API_EXCEPTIONS as exc:
         handle_api_exception(exc)
@@ -250,10 +247,7 @@ def ip_host_group_create(
 def ip_host_group_update(
     ctx: typer.Context,
     name: Annotated[str, typer.Argument(help="IP host group name.")],
-    members: Annotated[
-        list[str] | None,
-        typer.Option("--host", help="Member hosts to add/remove/replace."),
-    ] = None,
+    members: Annotated[list[str], typer.Option("--member", help="Member hosts to add/remove/replace.")],
     action: Annotated[str, typer.Option("--action", help="Membership action: add, remove, replace.")] = "add",
     description: Annotated[str | None, typer.Option("--description", help="Optional description override.")] = None,
     host: HostOption = None,
@@ -269,7 +263,7 @@ def ip_host_group_update(
         response = _service(ctx, host, username, password, port, insecure).update_ip_host_group(
             IpHostGroupUpdate(
                 name=name,
-                host_list=members or [],
+                host_list=members,
                 description=description,
                 action=cast(GroupAction, action),
             )
@@ -701,10 +695,7 @@ def fqdn_host_group_get(
 def fqdn_host_group_create(
     ctx: typer.Context,
     name: Annotated[str, typer.Argument(help="FQDN host group name.")],
-    members: Annotated[
-        list[str] | None,
-        typer.Option("--host", help="FQDN host members to include."),
-    ] = None,
+    members: Annotated[list[str], typer.Option("--member", help="FQDN host members to include.")],
     description: Annotated[str | None, typer.Option("--description", help="Optional description.")] = None,
     host: HostOption = None,
     username: UsernameOption = None,
@@ -717,7 +708,7 @@ def fqdn_host_group_create(
     response: dict[str, object] = {}
     try:
         response = _service(ctx, host, username, password, port, insecure).create_fqdn_host_group(
-            FqdnHostGroupCreate(name=name, fqdn_host_list=members or [], description=description)
+            FqdnHostGroupCreate(name=name, fqdn_host_list=members, description=description)
         )
     except API_EXCEPTIONS as exc:
         handle_api_exception(exc)
@@ -728,10 +719,7 @@ def fqdn_host_group_create(
 def fqdn_host_group_update(
     ctx: typer.Context,
     name: Annotated[str, typer.Argument(help="FQDN host group name.")],
-    members: Annotated[
-        list[str] | None,
-        typer.Option("--host", help="Member hosts to add/remove/replace."),
-    ] = None,
+    members: Annotated[list[str], typer.Option("--member", help="Member hosts to add/remove/replace.")],
     action: Annotated[str, typer.Option("--action", help="Membership action: add, remove, replace.")] = "add",
     description: Annotated[str | None, typer.Option("--description", help="Optional description override.")] = None,
     host: HostOption = None,
@@ -747,7 +735,7 @@ def fqdn_host_group_update(
         response = _service(ctx, host, username, password, port, insecure).update_fqdn_host_group(
             FqdnHostGroupUpdate(
                 name=name,
-                fqdn_host_list=members or [],
+                fqdn_host_list=members,
                 description=description,
                 action=cast(GroupAction, action),
             )
