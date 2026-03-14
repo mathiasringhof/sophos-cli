@@ -9,12 +9,13 @@ from typing import Any, Literal, cast
 
 import typer
 from rich.console import Console
-from rich.json import JSON
 from rich.table import Table
 from sophosfirewall_python.api_client import (
     SophosFirewallAPIError,
     SophosFirewallAuthFailure,
     SophosFirewallInvalidArgument,
+    SophosFirewallOperatorError,
+    SophosFirewallZeroRecords,
 )
 
 from sophos_cli.config import Settings
@@ -29,6 +30,8 @@ API_EXCEPTIONS = (
     SophosFirewallAPIError,
     SophosFirewallAuthFailure,
     SophosFirewallInvalidArgument,
+    SophosFirewallOperatorError,
+    SophosFirewallZeroRecords,
 )
 
 
@@ -90,7 +93,7 @@ def resolve_output_format(output: OutputFormat) -> Literal["json", "table"]:
 def render_payload(payload: Any) -> None:
     """Render arbitrary payloads as JSON."""
 
-    console.print(JSON.from_data(payload))
+    console.print_json(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 def render_records(
@@ -189,6 +192,17 @@ def load_json_input(
         raise typer.BadParameter("JSON payload must be an object.")
 
     return cast(dict[str, Any], payload)
+
+
+def load_optional_json_input(
+    inline_data: str | None,
+    file_path: Path | None,
+) -> dict[str, Any]:
+    """Load an optional JSON object from --data or --data-file."""
+
+    if not inline_data and file_path is None:
+        return {}
+    return load_json_input(inline_data, file_path)
 
 
 def render_dry_run(method: str, arguments: dict[str, Any]) -> None:

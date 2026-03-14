@@ -11,7 +11,6 @@ from typing import Any, Union, cast, get_args, get_origin
 import typer
 from click.core import ParameterSource
 from rich.console import Console
-from rich.json import JSON
 from sophosfirewall_python.api_client import (
     SophosFirewallAPIError,
     SophosFirewallAuthFailure,
@@ -57,7 +56,7 @@ class CliParamSpec:
 
 
 def _render(payload: Any) -> None:
-    console.print(JSON.from_data(payload))
+    console.print_json(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 def _normalize_default(annotation: Any, default: object) -> object:

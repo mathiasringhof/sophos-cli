@@ -157,14 +157,16 @@ class InMemoryFirewallClient:
         timeout: int = 30,
         output_format: str = "dict",
     ) -> dict[str, object]:
-        del key, timeout, output_format
-        self.last_call = ("remove", {"xml_tag": xml_tag, "name": name})
+        del timeout, output_format
+        self.last_call = ("remove", {"xml_tag": xml_tag, "name": name, "key": key})
         store = {
             "DNSHostEntry": self.entries,
             "IPHost": self.ip_hosts,
             "IPHostGroup": self.ip_host_groups,
             "FQDNHost": self.fqdn_hosts,
             "FQDNHostGroup": self.fqdn_host_groups,
+            "Services": self.entries,
+            "User": self.entries,
         }[xml_tag]
         store.pop(name, None)
         return {"Response": {"Status": {"@code": "200", "#text": f"Deleted {xml_tag}"}}}

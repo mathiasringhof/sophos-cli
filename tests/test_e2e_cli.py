@@ -53,3 +53,67 @@ def test_e2e_network_ip_host_list_smoke(runner: CliRunner) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_service_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["service", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_firewall_rule_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["firewall", "rule", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_zone_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["zone", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_admin_profile_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["admin", "profile", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_system_backup_get_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["system", "backup", "get"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, dict)
+    assert "BackupRestore" in payload
+
+
+@pytest.mark.e2e
+def test_e2e_user_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["user", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+
+
+@pytest.mark.e2e
+def test_e2e_webfilter_policy_list_smoke(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["webfilter", "policy", "list"], env=_e2e_env())
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)

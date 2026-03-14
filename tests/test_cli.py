@@ -85,6 +85,68 @@ def test_network_help_shows_wave_one_subcommands(runner: CliRunner) -> None:
     assert "fqdn-host-group" in result.stdout
 
 
+def test_service_help_shows_expected_subcommands(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["service", "--help"])
+
+    assert result.exit_code == 0
+    assert "list" in result.stdout
+    assert "get" in result.stdout
+    assert "create" in result.stdout
+    assert "update" in result.stdout
+    assert "delete" in result.stdout
+    assert "service-group" in result.stdout
+    assert "url-group" in result.stdout
+
+
+def test_firewall_help_shows_expected_subcommands(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["firewall", "--help"])
+
+    assert result.exit_code == 0
+    assert "rule" in result.stdout
+    assert "rule-group" in result.stdout
+    assert "acl-rule" in result.stdout
+
+
+def test_zone_help_shows_expected_subcommands(runner: CliRunner) -> None:
+    result = runner.invoke(app, ["zone", "--help"])
+
+    assert result.exit_code == 0
+    assert "list" in result.stdout
+    assert "get" in result.stdout
+    assert "create" in result.stdout
+    assert "update" in result.stdout
+    assert "delete" in result.stdout
+    assert "interface" in result.stdout
+    assert "vlan" in result.stdout
+    assert "dns-forwarders" in result.stdout
+
+
+def test_admin_system_user_webfilter_help_shows_expected_subcommands(runner: CliRunner) -> None:
+    admin_result = runner.invoke(app, ["admin", "--help"])
+    system_result = runner.invoke(app, ["system", "--help"])
+    user_result = runner.invoke(app, ["user", "--help"])
+    webfilter_result = runner.invoke(app, ["webfilter", "--help"])
+
+    assert admin_result.exit_code == 0
+    assert "profile" in admin_result.stdout
+    assert "authen" in admin_result.stdout
+    assert "settings" in admin_result.stdout
+
+    assert system_result.exit_code == 0
+    assert "backup" in system_result.stdout
+    assert "notification" in system_result.stdout
+    assert "notification-list" in system_result.stdout
+    assert "reports-retention" in system_result.stdout
+
+    assert user_result.exit_code == 0
+    assert "create" in user_result.stdout
+    assert "update-password" in user_result.stdout
+
+    assert webfilter_result.exit_code == 0
+    assert "policy" in webfilter_result.stdout
+    assert "user-activity" in webfilter_result.stdout
+
+
 def test_network_group_help_uses_member_option(runner: CliRunner) -> None:
     ip_group_result = runner.invoke(app, ["network", "ip-host-group", "create", "--help"])
     fqdn_group_result = runner.invoke(app, ["network", "fqdn-host-group", "create", "--help"])

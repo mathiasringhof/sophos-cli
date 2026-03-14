@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 import pytest
-from sophosfirewall_python.api_client import SophosFirewallAPIError, SophosFirewallAuthFailure
+from sophosfirewall_python.api_client import (
+    SophosFirewallAPIError,
+    SophosFirewallAuthFailure,
+    SophosFirewallZeroRecords,
+)
 from typer.testing import CliRunner
 
 from sophos_cli.cli import app
@@ -201,6 +206,53 @@ def test_dns_list_defaults_to_json_when_stdout_is_not_a_tty(
     assert result.exit_code == 0
     assert '"host_name": "web-1.example.com"' in result.stdout
     assert "DNS Host Entries" not in result.stdout
+
+
+def test_firewall_rule_list_outputs_valid_json_for_multiline_strings(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    def _get_rule(name: str | None = None) -> dict[str, object]:
+        del name
+        return {
+            "Response": {
+                "FirewallRule": {
+                    "Name": "Allow Home Assistant",
+                    "Description": "Allow Home Assistant to communicate\nwith targets in other zones",
+                }
+            }
+        }
+
+    firewall_client.get_rule = _get_rule
+
+    result = runner.invoke(app, ["firewall", "rule", "list", *connection_args])
+
+    assert result.exit_code == 0
+    payload = result.stdout
+    assert "Allow Home Assistant to communicate\\nwith targets in other zones" in payload
+    assert json.loads(payload)[0]["Description"].startswith("Allow Home Assistant")
+
+
+def test_user_list_returns_empty_json_array_for_zero_records(
+    runner: CliRunner,
+    connection_args: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class ZeroUserClient:
+        def get_user(self, username: str | None = None) -> object:
+            del username
+            raise SophosFirewallZeroRecords("Number of records Zero.")
+
+    def _create_client(_params: ConnectionParams) -> ZeroUserClient:
+        return ZeroUserClient()
+
+    monkeypatch.setattr("sophos_cli.command_support.create_client", _create_client)
+
+    result = runner.invoke(app, ["user", "list", *connection_args])
+
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "[]"
 
 
 def test_dns_create_alias_still_works_for_add(
@@ -484,4 +536,619 @@ def test_network_fqdn_host_group_update_uses_member_option(
     assert firewall_client.last_call == (
         "update_fqdn_hostgroup",
         {"name": "apps", "action": "add", "fqdn_host_list": ["app-2"]},
+    )
+
+
+def test_service_create_parses_entry_json(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "create",
+            "HTTPS",
+            "--service-type",
+            "TCPorUDP",
+            "--entry-json",
+            '{"protocol":"TCP","dst_port":"443"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_service",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "HTTPS",
+                "service_type": "TCPorUDP",
+                "service_list": [{"protocol": "TCP", "dst_port": "443"}],
+            },
+        },
+    )
+
+
+def test_service_get_uses_services_response_tag(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    def _get_service(
+        name: str | None = None,
+        operator: str = "=",
+        dst_proto: str | None = None,
+        dst_port: str | None = None,
+    ) -> dict[str, object]:
+        del operator, dst_proto, dst_port
+        payload: dict[str, object] = {
+            "Name": name or "codex-svc",
+            "Type": "TCPorUDP",
+            "ServiceDetails": {"ServiceDetail": {"Protocol": "TCP", "DestinationPort": "443"}},
+        }
+        return {"Response": {"Services": payload}}
+
+    firewall_client.get_service = _get_service
+
+    result = runner.invoke(app, ["service", "get", "codex-svc", *connection_args])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["Name"] == "codex-svc"
+    assert payload["ServiceDetails"]["ServiceDetail"]["DestinationPort"] == "443"
+
+
+def test_service_update_passes_action_and_entries(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "update",
+            "HTTPS",
+            "--service-type",
+            "TCPorUDP",
+            "--entry-json",
+            '{"protocol":"TCP","dst_port":"8443"}',
+            "--action",
+            "replace",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_service",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "HTTPS",
+                "service_type": "TCPorUDP",
+                "service_list": [{"protocol": "TCP", "dst_port": "8443"}],
+                "action": "replace",
+            },
+        },
+    )
+
+
+def test_service_delete_uses_services_xml_tag(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "delete",
+            "HTTPS-alt",
+            "--yes",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "remove",
+        {
+            "xml_tag": "Services",
+            "name": "HTTPS-alt",
+            "key": "Name",
+        },
+    )
+
+
+def test_url_group_get_uses_webfilter_url_group_response_tag(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    def _get_urlgroup(name: str | None = None, operator: str = "=") -> dict[str, object]:
+        del operator
+        payload: dict[str, object] = {
+            "Name": name or "codex-urlgrp",
+            "URLlist": {"URL": "example.com"},
+        }
+        return {"Response": {"WebFilterURLGroup": payload}}
+
+    firewall_client.get_urlgroup = _get_urlgroup
+
+    result = runner.invoke(app, ["service", "url-group", "get", "codex-urlgrp", *connection_args])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["Name"] == "codex-urlgrp"
+    assert payload["URLlist"]["URL"] == "example.com"
+
+
+def test_service_group_create_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "service-group",
+            "create",
+            "web-services",
+            "--member",
+            "HTTPS",
+            "--member",
+            "HTTP",
+            "--description",
+            "Web traffic",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_service_group",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "web-services",
+                "service_list": ["HTTPS", "HTTP"],
+                "description": "Web traffic",
+            },
+        },
+    )
+
+
+def test_service_group_update_uses_member_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "service-group",
+            "update",
+            "web-services",
+            "--member",
+            "HTTPS",
+            "--action",
+            "remove",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_service_group",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "web-services",
+                "service_list": ["HTTPS"],
+                "action": "remove",
+                "description": None,
+            },
+        },
+    )
+
+
+def test_url_group_create_uses_domain_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "url-group",
+            "create",
+            "allowed-domains",
+            "--domain",
+            "example.com",
+            "--domain",
+            "example.org",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_urlgroup",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "allowed-domains",
+                "domain_list": ["example.com", "example.org"],
+            },
+        },
+    )
+
+
+def test_url_group_update_uses_domain_option(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "service",
+            "url-group",
+            "update",
+            "allowed-domains",
+            "--domain",
+            "example.net",
+            "--action",
+            "add",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_urlgroup",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "allowed-domains",
+                "domain_list": ["example.net"],
+                "action": "add",
+            },
+        },
+    )
+
+
+def test_firewall_rule_create_passes_json_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "firewall",
+            "rule",
+            "create",
+            "allow-web",
+            "--data",
+            '{"action":"Accept","src_zones":["LAN"],"dst_zones":["WAN"],"service_list":["HTTPS"]}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_rule",
+        {
+            "args": [],
+            "kwargs": {
+                "rule_params": {
+                    "rulename": "allow-web",
+                    "action": "Accept",
+                    "src_zones": ["LAN"],
+                    "dst_zones": ["WAN"],
+                    "service_list": ["HTTPS"],
+                }
+            },
+        },
+    )
+
+
+def test_firewall_rule_update_preserves_existing_status_when_not_provided(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    def _get_rule(name: str | None = None, operator: str = "=") -> dict[str, object]:
+        del operator
+        return {
+            "Response": {
+                "FirewallRule": {
+                    "Name": name or "allow-web",
+                    "Status": "Disable",
+                    "Description": "existing",
+                    "NetworkPolicy": {"Action": "Accept", "LogTraffic": "Disable"},
+                }
+            }
+        }
+
+    def _update_rule(name: str, rule_params: dict[str, object], debug: bool = False) -> dict[str, object]:
+        del debug
+        firewall_client.last_call = ("update_rule", {"name": name, "rule_params": rule_params})
+        return {"Response": {"FirewallRule": {"Name": name}}}
+
+    firewall_client.get_rule = _get_rule
+    firewall_client.update_rule = _update_rule
+
+    result = runner.invoke(
+        app,
+        [
+            "firewall",
+            "rule",
+            "update",
+            "allow-web",
+            "--data",
+            '{"description":"updated"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_rule",
+        {"name": "allow-web", "rule_params": {"description": "updated", "status": "Disable"}},
+    )
+
+
+def test_firewall_acl_rule_update_passes_json_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "firewall",
+            "acl-rule",
+            "update",
+            "admin-access",
+            "--data",
+            '{"action":"Drop","update_action":"replace"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_acl_rule",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "admin-access",
+                "action": "Drop",
+                "update_action": "replace",
+            },
+        },
+    )
+
+
+def test_zone_create_passes_zone_type_and_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "zone",
+            "create",
+            "branch",
+            "--zone-type",
+            "LAN",
+            "--data",
+            '{"description":"Branch LAN"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_zone",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "branch",
+                "zone_type": "LAN",
+                "zone_params": {"description": "Branch LAN"},
+            },
+        },
+    )
+
+
+def test_admin_profile_create_passes_kwargs_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "admin",
+            "profile",
+            "create",
+            "readonly",
+            "--data",
+            '{"default_permission":"Read-Only","dashboard":"Read-Only"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_admin_profile",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "readonly",
+                "default_permission": "Read-Only",
+                "dashboard": "Read-Only",
+            },
+        },
+    )
+
+
+def test_system_backup_update_passes_backup_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "system",
+            "backup",
+            "update",
+            "--data",
+            '{"BackupMode":"Local","BackupFrequency":"Daily"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "update_backup",
+        {
+            "args": [],
+            "kwargs": {
+                "backup_params": {"BackupMode": "Local", "BackupFrequency": "Daily"},
+            },
+        },
+    )
+
+
+def test_user_create_passes_username_and_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "user",
+            "create",
+            "alice",
+            "--data",
+            '{"name":"Alice","user_password":"secret","profile":"Default"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_user",
+        {
+            "args": [],
+            "kwargs": {
+                "user": "alice",
+                "name": "Alice",
+                "user_password": "secret",
+                "profile": "Default",
+            },
+        },
+    )
+
+
+def test_user_delete_uses_name_lookup_key(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "user",
+            "delete",
+            "alice",
+            "--yes",
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "remove",
+        {
+            "xml_tag": "User",
+            "name": "alice",
+            "key": "Name",
+        },
+    )
+
+
+def test_webfilter_policy_create_passes_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "webfilter",
+            "policy",
+            "create",
+            "default-policy",
+            "--data",
+            '{"default_action":"Allow"}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_webfilterpolicy",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "default-policy",
+                "default_action": "Allow",
+            },
+        },
+    )
+
+
+def test_webfilter_user_activity_create_passes_payload(
+    runner: CliRunner,
+    connection_args: list[str],
+    firewall_client: Any,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "webfilter",
+            "user-activity",
+            "create",
+            "restricted-browsing",
+            "--data",
+            '{"category_list":[{"id":"Streaming Media","type":"web category"}]}',
+            *connection_args,
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert firewall_client.last_call == (
+        "create_useractivity",
+        {
+            "args": [],
+            "kwargs": {
+                "name": "restricted-browsing",
+                "category_list": [{"id": "Streaming Media", "type": "web category"}],
+            },
+        },
     )

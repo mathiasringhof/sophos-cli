@@ -140,3 +140,161 @@ class FirewallClientProtocol(Protocol):
         action: str = "add",
         debug: bool = False,
     ) -> object: ...
+
+    def get_service(
+        self,
+        name: str | None = None,
+        operator: str = "=",
+        dst_proto: str | None = None,
+        dst_port: str | None = None,
+    ) -> object: ...
+
+    def create_service(
+        self,
+        name: str,
+        service_type: str,
+        service_list: list[dict[str, object]],
+        debug: bool = False,
+    ) -> object: ...
+
+    def update_service(
+        self,
+        name: str,
+        service_type: str,
+        service_list: list[dict[str, object]],
+        action: str = "add",
+        debug: bool = False,
+    ) -> object: ...
+
+    def get_service_group(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def create_service_group(
+        self,
+        name: str,
+        service_list: list[str] | None = None,
+        description: str | None = None,
+        debug: bool = False,
+    ) -> object: ...
+
+    def update_service_group(
+        self,
+        name: str,
+        service_list: list[str],
+        description: str | None = None,
+        action: str = "add",
+        debug: bool = False,
+    ) -> object: ...
+
+    def get_urlgroup(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def create_urlgroup(
+        self,
+        name: str,
+        domain_list: list[str],
+        debug: bool = False,
+    ) -> object: ...
+
+    def update_urlgroup(
+        self,
+        name: str,
+        domain_list: list[str],
+        action: str = "add",
+        debug: bool = False,
+    ) -> object: ...
+
+    def get_rule(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def get_rulegroup(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def get_acl_rule(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def create_rule(self, rule_params: dict[str, object], debug: bool = False) -> object: ...
+
+    def update_rule(self, name: str, rule_params: dict[str, object], debug: bool = False) -> object: ...
+
+    def create_rulegroup(
+        self,
+        name: str,
+        description: str,
+        policy_list: list[object],
+        source_zones: list[object],
+        dest_zones: list[object],
+        policy_type: str,
+        debug: bool = False,
+    ) -> object: ...
+
+    def update_rulegroup(
+        self,
+        name: str,
+        description: str | None = None,
+        policy_list: list[object] | None = None,
+        source_zones: list[object] | None = None,
+        dest_zones: list[object] | None = None,
+        policy_type: str | None = None,
+        source_zone_action: str = "add",
+        dest_zone_action: str = "add",
+        debug: bool = False,
+    ) -> object: ...
+
+    def create_acl_rule(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def update_acl_rule(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def get_zone(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def create_zone(
+        self,
+        name: str,
+        zone_type: str,
+        zone_params: dict[str, object] | None = None,
+        debug: bool = False,
+    ) -> object: ...
+
+    def update_zone(
+        self,
+        name: str,
+        zone_params: dict[str, object] | None = None,
+        debug: bool = False,
+    ) -> object: ...
+
+    def get_interface(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def get_vlan(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def get_dns_forwarders(self) -> object: ...
+
+    def get_admin_profile(self, name: str | None = None, operator: str = "=") -> object: ...
+
+    def create_admin_profile(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def update_admin_profile(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def get_admin_authen(self) -> object: ...
+
+    def get_admin_settings(self) -> object: ...
+
+    def get_backup(self, name: str | None = None) -> object: ...
+
+    def update_backup(self, backup_params: dict[str, object], debug: bool = False) -> object: ...
+
+    def get_notification(self, name: str | None = None) -> object: ...
+
+    def get_notification_list(self, name: str | None = None) -> object: ...
+
+    def get_reports_retention(self, name: str | None = None) -> object: ...
+
+    def get_user(self, name: str | None = None, username: str | None = None, operator: str = "=") -> object: ...
+
+    def create_user(self, debug: bool = False, **kwargs: object) -> object: ...
+
+    def update_user_password(self, username: str, new_password: str, debug: bool = False) -> object: ...
+
+    def get_webfilterpolicy(self, name: str | None = None) -> object: ...
+
+    def create_webfilterpolicy(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def update_webfilterpolicy(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
+
+    def get_useractivity(self, name: str | None = None) -> object: ...
+
+    def create_useractivity(self, name: str, debug: bool = False, **kwargs: object) -> object: ...
